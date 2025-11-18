@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, ExternalLink, Github, Calendar, X, Award, Trophy, Briefcase, FolderOpen } from 'lucide-react';
+import config from './config';
 
 const ProjectPortfolio = () => {
   const [projects, setProjects] = useState([]);
@@ -12,36 +13,32 @@ const ProjectPortfolio = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [modalType, setModalType] = useState('project');
+  const [loading, setLoading] = useState(true);
 
-  // Mock data
+  // Load data from API
   useEffect(() => {
-    const mockProjects = [
-      {
-        id: 1,
-        title: 'E-Commerce Platform',
-        description: 'A full-stack e-commerce solution with payment integration, real-time inventory management, and advanced analytics dashboard.',
-        category: 'Web Development',
-        tags: ['React', 'Node.js', 'MongoDB', 'Stripe'],
-        status: 'completed',
-        imageUrl: 'https://images.unsplash.com/photo-1661956602116-aa6865609028?w=800&q=80',
-        demoUrl: 'https://demo.example.com',
-        githubUrl: 'https://github.com/example',
-        date: '2024-10'
-      },
-      {
-        id: 2,
-        title: 'AI Chat Application',
-        description: 'Real-time chat application with AI-powered responses, sentiment analysis, and multi-language support.',
-        category: 'AI/ML',
-        tags: ['Python', 'Flask', 'OpenAI', 'WebSocket'],
-        status: 'in-progress',
-        imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80',
-        demoUrl: '',
-        githubUrl: 'https://github.com/example',
-        date: '2024-11'
-      }
-    ];
+    loadProjects();
+    loadCertificates();
+    loadAccomplishments();
+  }, []);
 
+  const loadProjects = async () => {
+    try {
+      const response = await fetch(`${config.API_URL}/projects`);
+      const data = await response.json();
+      setProjects(data);
+      if (activeTab === 'projects') {
+        setFilteredItems(data);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      setLoading(false);
+    }
+  };
+
+  const loadCertificates = () => {
+    // Mock data for now - you can add API endpoints later
     const mockCertificates = [
       {
         id: 1,
@@ -51,42 +48,25 @@ const ProjectPortfolio = () => {
         credentialUrl: 'https://aws.amazon.com/verification',
         description: 'Professional certification for designing distributed systems on AWS.',
         imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80'
-      },
-      {
-        id: 2,
-        title: 'Google Cloud Professional Developer',
-        issuer: 'Google Cloud',
-        date: '2024-06',
-        credentialUrl: 'https://google.com/credentials',
-        description: 'Expertise in building scalable applications using Google Cloud Platform.',
-        imageUrl: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=800&q=80'
       }
     ];
+    setCertificates(mockCertificates);
+  };
 
+  const loadAccomplishments = () => {
+    // Mock data for now - you can add API endpoints later
     const mockAccomplishments = [
       {
         id: 1,
         title: 'Hackathon Winner - TechCrunch Disrupt',
         date: '2024-09',
-        description: 'First place winner for developing an innovative AI-powered code review tool that reduces review time by 60%.',
+        description: 'First place winner for developing an innovative AI-powered code review tool.',
         category: 'Competition',
         imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80'
-      },
-      {
-        id: 2,
-        title: 'Open Source Contributor - Top 100',
-        date: '2024-07',
-        description: 'Recognized as a top 100 contributor to major open-source projects with over 500 merged pull requests.',
-        category: 'Open Source',
-        imageUrl: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=800&q=80'
       }
     ];
-
-    setProjects(mockProjects);
-    setCertificates(mockCertificates);
     setAccomplishments(mockAccomplishments);
-    setFilteredItems(mockProjects);
-  }, []);
+  };
 
   useEffect(() => {
     let items = activeTab === 'projects' ? projects : 
@@ -132,24 +112,52 @@ const ProjectPortfolio = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (id, type) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      if (type === 'project') {
+  const handleDelete = async (id, type) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) {
+      return;
+    }
+
+    if (type === 'project') {
+      try {
+        await fetch(`${config.API_URL}/projects/${id}`, {
+          method: 'DELETE'
+        });
         setProjects(projects.filter(p => p.id !== id));
-      } else if (type === 'certificate') {
-        setCertificates(certificates.filter(c => c.id !== id));
-      } else {
-        setAccomplishments(accomplishments.filter(a => a.id !== id));
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('Failed to delete project');
       }
+    } else if (type === 'certificate') {
+      setCertificates(certificates.filter(c => c.id !== id));
+    } else {
+      setAccomplishments(accomplishments.filter(a => a.id !== id));
     }
   };
 
-  const handleSave = (itemData) => {
+  const handleSave = async (itemData) => {
     if (modalType === 'project') {
-      if (currentItem) {
-        setProjects(projects.map(p => p.id === currentItem.id ? { ...itemData, id: currentItem.id } : p));
-      } else {
-        setProjects([...projects, { ...itemData, id: Date.now() }]);
+      try {
+        const method = currentItem ? 'PUT' : 'POST';
+        const url = currentItem 
+          ? `${config.API_URL}/projects/${currentItem.id}`
+          : `${config.API_URL}/projects`;
+        
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(itemData)
+        });
+        
+        const savedProject = await response.json();
+        
+        if (currentItem) {
+          setProjects(projects.map(p => p.id === currentItem.id ? savedProject : p));
+        } else {
+          setProjects([...projects, savedProject]);
+        }
+      } catch (error) {
+        console.error('Error saving project:', error);
+        alert('Failed to save project');
       }
     } else if (modalType === 'certificate') {
       if (currentItem) {
@@ -177,6 +185,17 @@ const ProjectPortfolio = () => {
     certificates: { icon: Award, label: 'Certificates', color: 'from-purple-500 to-pink-500' },
     accomplishments: { icon: Trophy, label: 'Accomplishments', color: 'from-amber-500 to-orange-500' }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-slate-400 mt-4">Loading portfolio...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
