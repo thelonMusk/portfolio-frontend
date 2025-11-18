@@ -37,35 +37,30 @@ const ProjectPortfolio = () => {
     }
   };
 
-  const loadCertificates = () => {
-    // Mock data for now - you can add API endpoints later
-    const mockCertificates = [
-      {
-        id: 1,
-        title: 'AWS Certified Solutions Architect',
-        issuer: 'Amazon Web Services',
-        date: '2024-08',
-        credentialUrl: 'https://aws.amazon.com/verification',
-        description: 'Professional certification for designing distributed systems on AWS.',
-        imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80'
+  const loadCertificates = async () => {
+    try {
+      const response = await fetch(`${config.API_URL}/certificates`);
+      const data = await response.json();
+      setCertificates(data);
+      if (activeTab === 'certificates') {
+        setFilteredItems(data);
       }
-    ];
-    setCertificates(mockCertificates);
+    } catch (error) {
+      console.error('Error loading certificates:', error);
+    }
   };
 
-  const loadAccomplishments = () => {
-    // Mock data for now - you can add API endpoints later
-    const mockAccomplishments = [
-      {
-        id: 1,
-        title: 'Hackathon Winner - TechCrunch Disrupt',
-        date: '2024-09',
-        description: 'First place winner for developing an innovative AI-powered code review tool.',
-        category: 'Competition',
-        imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80'
+  const loadAccomplishments = async () => {
+    try {
+      const response = await fetch(`${config.API_URL}/accomplishments`);
+      const data = await response.json();
+      setAccomplishments(data);
+      if (activeTab === 'accomplishments') {
+        setFilteredItems(data);
       }
-    ];
-    setAccomplishments(mockAccomplishments);
+    } catch (error) {
+      console.error('Error loading accomplishments:', error);
+    }
   };
 
   useEffect(() => {
